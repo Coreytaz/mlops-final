@@ -1,0 +1,10 @@
+apache-airflow
+pycaret
+mlflow
+flask
+flasgger
+pandas
+numpy
+scikit-learn
+requests
+psutil

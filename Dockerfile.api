@@ -1,0 +1,35 @@
+# Используем официальный образ Python
+FROM python:3.9-slim
+
+# Устанавливаем рабочую директорию
+WORKDIR /app
+
+# Устанавливаем системные зависимости для компиляции некоторых python пакетов (например, для lightgbm/xgboost, используемых в pycaret, если потребуется)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Копируем requirements.txt
+COPY requirements.txt .
+
+# Устанавливаем зависимости
+# Используем --no-cache-dir для уменьшения размера образа
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Копируем исходный код проекта
+COPY . .
+
+# Экспортируем переменную окружения Flask
+ENV FLASK_APP=app/api.py
+ENV PYTHONPATH=/app
+
+# Открываем порт 5000
+EXPOSE 5000
+
+# Запускаем скрипт обучения при старте (опционально, или вынести это отдельно)
+# Но для API контейнера лучше сразу запускать API. Модель должна быть уже обучена или примонтирована.
+# Для простоты в этом примере, если модели нет, можно попробовать её обучить или ожидать volume.
+# Мы будем запускать API.
+
+CMD ["python", "app/api.py"]

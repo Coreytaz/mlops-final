@@ -1,0 +1,114 @@
+version: '3.8'
+
+x-airflow-common:
+  build:
+    context: .
+    dockerfile: Dockerfile.airflow
+  environment:
+    &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./models:/opt/airflow/dags/repo/models
+    - ./logs:/opt/airflow/logs
+    - ./mlruns:/opt/airflow/mlruns
+    - ./config:/opt/airflow/config
+    - ./app:/opt/airflow/app
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    &airflow-common-depends-on
+    postgres:
+      condition: service_healthy
+
+services:
+  # ==========================================
+  # 1. Flask API (Model Serving)
+  # ==========================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: mlops-api
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./models:/app/models
+      - ./logs:/app/logs
+      - ./mlruns:/app/mlruns
+    environment:
+      - FLASK_ENV=development
+    restart: always
+
+  # ==========================================
+  # 2. MLflow UI (Experiment Tracking)
+  # ==========================================
+  mlflow-ui:
+    image: python:3.9-slim
+    container_name: mlops-mlflow
+    volumes:
+      - ./mlruns:/mlruns
+    ports:
+      - "5001:5000"
+    command: pip install mlflow && mlflow ui --host 0.0.0.0 --port 5000 --backend-store-uri file:///mlruns
+
+  # ==========================================
+  # 3. Airflow Components
+  # ==========================================
+  postgres:
+    image: postgres:13
+    container_name: mlops-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
+    restart: always
+
+  airflow-init:
+    <<: *x-airflow-common
+    container_name: mlops-airflow-init
+    command: version
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_UPGRADE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: 'admin'
+      _AIRFLOW_WWW_USER_PASSWORD: 'admin'
+    command: bash -c "airflow db init && airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com"
+
+  airflow-webserver:
+    <<: *x-airflow-common
+    container_name: mlops-airflow-webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *x-airflow-common
+    container_name: mlops-airflow-scheduler
+    command: scheduler
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
