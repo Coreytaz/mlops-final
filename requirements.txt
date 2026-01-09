@@ -1,3 +1,7 @@
 Flask
 flask-restx
 mlflow
+numpy
+pandas
+evidently
+pycaret
