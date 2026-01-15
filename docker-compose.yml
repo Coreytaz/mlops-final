@@ -23,6 +23,7 @@ x-airflow-common:
     MLFLOW_S3_ENDPOINT_URL: http://minio:9000
     AWS_ACCESS_KEY_ID: minio_user
     AWS_SECRET_ACCESS_KEY: minio_password
+    AB_API_BASE_URL: http://api:5000
     # yamllint disable rule:line-length
     # Use simple http server on scheduler for health checks
     # See https://airflow.apache.org/docs/apache-airflow/stable/administration-and-deployment/logging-monitoring/check-health.html#scheduler-health-check-server

@@ -1,7 +1,6 @@
 logs/
 
 __pycache__/
-dataset/
 reports/
 
 logs.log

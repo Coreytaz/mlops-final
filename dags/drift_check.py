@@ -97,7 +97,7 @@ def _should_trigger_retrain(**context) -> bool:
     return bool(ti.xcom_pull(key="trigger_retrain", task_ids="compute_drift"))
 
 with DAG(
-    dag_id="data_drift_monitoring",
+    dag_id="drift_monitoring",
     start_date=datetime(2026, 1, 1),
     schedule="@daily",
     catchup=False,
