@@ -85,8 +85,6 @@ def _compute_drift(**context) -> bool:
         trigger = True
 
     ti = context["ti"]
-    ti.xcom_push(key="max_psi", value=max_psi)
-    ti.xcom_push(key="ks_drifted", value=ks_drifted)
     ti.xcom_push(key="trigger_retrain", value=trigger)
 
     return trigger

@@ -261,7 +261,6 @@ def _run_ab_test_and_decide(**context) -> dict:
 
         resp = requests.post(url, json=payload, timeout=AB_TIMEOUT_SECONDS)
         print(payload)
-        print(resp.status_code, resp.text)
         if not (200 <= resp.status_code < 300):
             failed += 1
             continue
@@ -275,8 +274,6 @@ def _run_ab_test_and_decide(**context) -> dict:
 
         pred_i = _safe_to_int(pred)
         label_i = int(label)
-        print(pred_i)
-        print(label_i)
         if pred_i is None or label_i is None:
             ok += 1
             continue

@@ -146,7 +146,7 @@ def _train_reference_and_register(**context) -> dict:
 
 
 with DAG(
-    dag_id="base_model_training",
+    dag_id="model_training",
     start_date=datetime(2026, 1, 1),
     schedule=None,
     catchup=False,
